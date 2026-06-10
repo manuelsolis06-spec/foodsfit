@@ -21,6 +21,13 @@ export default function MealsTracker() {
   const [showGoalEditor, setShowGoalEditor] = useState(false)
   const [newGoal, setNewGoal] = useState('2000')
 
+  // Calculator State
+  const [showCalculator, setShowCalculator] = useState(false)
+  const [calcGender, setCalcGender] = useState('male')
+  const [calcWeight, setCalcWeight] = useState('')
+  const [calcHeight, setCalcHeight] = useState('')
+  const [calcAge, setCalcAge] = useState('')
+
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
   const suggestionsRef = useRef(null)
@@ -85,6 +92,29 @@ export default function MealsTracker() {
       console.error('Error updating calorie goal:', err)
       alert('No se pudo guardar la meta.')
     }
+  }
+
+  const handleCalculateGoal = () => {
+    const w = parseFloat(calcWeight)
+    const h = parseFloat(calcHeight)
+    const a = parseInt(calcAge)
+
+    if (isNaN(w) || isNaN(h) || isNaN(a) || w <= 0 || h <= 0 || a <= 0) {
+      alert('Por favor, ingresa valores válidos de peso, altura y edad.')
+      return
+    }
+
+    // Mifflin-St Jeor TMB
+    let tmb = 10 * w + 6.25 * h - 5 * a
+    if (calcGender === 'male') {
+      tmb += 5
+    } else {
+      tmb -= 161
+    }
+
+    // Sedentary (x1.2)
+    const maintenance = Math.round(tmb * 1.2)
+    setNewGoal(maintenance.toString())
   }
 
   const fetchCustomMeals = async () => {
@@ -462,10 +492,109 @@ export default function MealsTracker() {
                   style={{ padding: '0.5rem 0.8rem', fontSize: '0.9rem' }}
                 />
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+
+              {/* Collapsible Calculator section */}
+              <div style={{
+                marginTop: '1rem',
+                borderTop: '1px solid var(--border-color)',
+                paddingTop: '1rem'
+              }}>
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={() => setShowCalculator(!showCalculator)}
+                  style={{
+                    width: '100%',
+                    padding: '0.4rem',
+                    fontSize: '0.85rem',
+                    justifyContent: 'center',
+                    marginBottom: '0.8rem'
+                  }}
+                >
+                  {showCalculator ? 'Ocultar Calculadora' : 'Calcular mi meta (Sedentario)'}
+                </button>
+
+                {showCalculator && (
+                  <div className="animate-fade" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                    <div className="form-group" style={{ marginBottom: '0.3rem' }}>
+                      <label style={{ fontSize: '0.75rem' }}>Género</label>
+                      <select
+                        value={calcGender}
+                        onChange={(e) => setCalcGender(e.target.value)}
+                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }}
+                      >
+                        <option value="male">Masculino</option>
+                        <option value="female">Femenino</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                      <div className="form-group" style={{ marginBottom: '0.3rem' }}>
+                        <label style={{ fontSize: '0.75rem' }}>Peso (kg)</label>
+                        <input
+                          type="number"
+                          placeholder="Ej. 70"
+                          value={calcWeight}
+                          onChange={(e) => setCalcWeight(e.target.value)}
+                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '0.3rem' }}>
+                        <label style={{ fontSize: '0.75rem' }}>Altura (cm)</label>
+                        <input
+                          type="number"
+                          placeholder="Ej. 175"
+                          value={calcHeight}
+                          onChange={(e) => setCalcHeight(e.target.value)}
+                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '0.3rem' }}>
+                        <label style={{ fontSize: '0.75rem' }}>Edad</label>
+                        <input
+                          type="number"
+                          placeholder="Ej. 25"
+                          value={calcAge}
+                          onChange={(e) => setCalcAge(e.target.value)}
+                          style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={handleCalculateGoal}
+                      style={{ padding: '0.4rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
+                    >
+                      Calcular y Rellenar
+                    </button>
+
+                    <p style={{
+                      fontSize: '0.72rem',
+                      color: 'var(--text-muted)',
+                      fontStyle: 'italic',
+                      lineHeight: '1.25',
+                      textAlign: 'center',
+                      background: 'rgba(255,255,255,0.02)',
+                      padding: '0.5rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px dashed var(--border-color)',
+                      marginTop: '0.2rem'
+                    }}>
+                      ⚠️ Cálculo para estilo de vida sedentario, busque su caso específico respecto a su nivel de ejercicio físico para mayor precisión.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                 <button 
                   className="btn-outline" 
-                  onClick={() => setShowGoalEditor(false)}
+                  onClick={() => {
+                    setShowGoalEditor(false)
+                    setShowCalculator(false)
+                  }}
                   style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
                 >
                   Cancelar
