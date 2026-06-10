@@ -242,6 +242,11 @@ input, select {
   width: 100%;
 }
 
+select option {
+  background-color: #111827;
+  color: #f3f4f6;
+}
+
 input:focus, select:focus {
   outline: none;
   border-color: var(--border-focus);
