@@ -309,7 +309,7 @@ export default function MealsTracker() {
           )}
 
           <form onSubmit={handleAddMeal} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem', position: 'relative' }}>
+            <div className="form-grid-3" style={{ position: 'relative' }}>
               
               {/* Food Name Field with suggestions */}
               <div className="form-group" style={{ position: 'relative' }} ref={suggestionsRef}>

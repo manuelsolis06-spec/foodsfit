@@ -166,12 +166,7 @@ export default function WeightTracker() {
             </div>
           )}
 
-          <form onSubmit={handleAddWeight} style={{
-            display: 'grid',
-            gridTemplateColumns: '1.5fr 1.5fr auto',
-            gap: '1rem',
-            alignItems: 'end'
-          }}>
+          <form onSubmit={handleAddWeight} className="form-grid-weights">
             <div className="form-group">
               <label htmlFor="weight-date">Fecha</label>
               <input

@@ -116,12 +116,7 @@ export default function CustomMeals() {
           </div>
         )}
 
-        <form onSubmit={handleAddMeal} style={{
-          display: 'grid',
-          gridTemplateColumns: '2fr 1fr auto',
-          gap: '1rem',
-          alignItems: 'end'
-        }}>
+        <form onSubmit={handleAddMeal} className="form-grid-custom-meals">
           <div className="form-group">
             <label htmlFor="meal-name">Nombre del Plato</label>
             <input
