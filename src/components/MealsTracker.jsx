@@ -27,6 +27,7 @@ export default function MealsTracker() {
   const [calcWeight, setCalcWeight] = useState('')
   const [calcHeight, setCalcHeight] = useState('')
   const [calcAge, setCalcAge] = useState('')
+  const [calcObjective, setCalcObjective] = useState('maintain')
 
   const [errorMsg, setErrorMsg] = useState('')
   const [saving, setSaving] = useState(false)
@@ -118,7 +119,15 @@ export default function MealsTracker() {
     }
 
     // Sedentary (x1.2)
-    const maintenance = Math.round(tmb * 1.2)
+    let maintenance = Math.round(tmb * 1.2)
+
+    // Adjust for objective (lose/gain 400 kcal)
+    if (calcObjective === 'lose') {
+      maintenance -= 400
+    } else if (calcObjective === 'gain') {
+      maintenance += 400
+    }
+
     setNewGoal(maintenance.toString())
   }
 
@@ -530,6 +539,19 @@ export default function MealsTracker() {
                       >
                         <option value="male">Masculino</option>
                         <option value="female">Femenino</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: '0.3rem' }}>
+                      <label style={{ fontSize: '0.75rem' }}>Objetivo</label>
+                      <select
+                        value={calcObjective}
+                        onChange={(e) => setCalcObjective(e.target.value)}
+                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }}
+                      >
+                        <option value="maintain">Mantener peso</option>
+                        <option value="lose">Bajar peso / Definición (-400 kcal)</option>
+                        <option value="gain">Subir peso / Volumen (+400 kcal)</option>
                       </select>
                     </div>
 
