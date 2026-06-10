@@ -642,4 +642,39 @@ input::placeholder {
   .log-kcal {
     font-size: 1rem;
   }
+
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+/* Weight Tracker Grid Layout Styles */
+.dashboard-grid.weight-grid {
+  grid-template-columns: 1.2fr 1.8fr;
+  grid-template-areas: 
+    "register chart"
+    "history chart";
+  align-items: start;
+}
+
+.weight-grid .register-card {
+  grid-area: register;
+}
+
+.weight-grid .history-card {
+  grid-area: history;
+}
+
+.weight-grid .chart-card {
+  grid-area: chart;
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid.weight-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas: 
+      "chart"
+      "register"
+      "history";
+  }
 }
