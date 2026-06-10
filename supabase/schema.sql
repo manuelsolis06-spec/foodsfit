@@ -18,6 +18,9 @@ create policy "Los usuarios pueden ver su propio perfil." on public.profiles
 create policy "Los usuarios pueden actualizar su propio perfil." on public.profiles
   for update using (auth.uid() = id);
 
+create policy "Los usuarios pueden insertar su propio perfil." on public.profiles
+  for insert with check (auth.uid() = id);
+
 -- Trigger para crear perfil automáticamente cuando se registre un nuevo usuario
 create or replace function public.handle_new_user()
 returns trigger as $$
