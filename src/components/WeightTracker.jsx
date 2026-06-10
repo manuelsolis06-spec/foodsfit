@@ -439,18 +439,29 @@ export default function WeightTracker() {
 
               {/* Points - Hidden in All-Time (Histórico) view */}
               {timeRange !== 'all' && svgPoints.map((pt, idx) => (
-                <circle
-                  key={idx}
-                  cx={pt.x}
-                  cy={pt.y}
-                  r={hoveredPoint && hoveredPoint.idx === idx ? '7' : '4'}
-                  fill={hoveredPoint && hoveredPoint.idx === idx ? '#fff' : 'var(--secondary)'}
-                  stroke="var(--bg-main)"
-                  strokeWidth="2"
-                  style={{ transition: 'r 0.15s ease, fill 0.15s ease', cursor: 'pointer' }}
-                  onMouseEnter={() => setHoveredPoint({ idx, ...pt })}
-                  onMouseLeave={() => setHoveredPoint(null)}
-                />
+                <g key={idx}>
+                  {/* Visible point */}
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={hoveredPoint && hoveredPoint.idx === idx ? '10' : '6'}
+                    fill={hoveredPoint && hoveredPoint.idx === idx ? '#fff' : 'var(--secondary)'}
+                    stroke="var(--bg-main)"
+                    strokeWidth="2.5"
+                    style={{ transition: 'r 0.15s ease, fill 0.15s ease' }}
+                  />
+                  {/* Larger transparent touch/hover target */}
+                  <circle
+                    cx={pt.x}
+                    cy={pt.y}
+                    r="22"
+                    fill="transparent"
+                    style={{ cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+                    onMouseEnter={() => setHoveredPoint({ idx, ...pt })}
+                    onMouseLeave={() => setHoveredPoint(null)}
+                    onClick={() => setHoveredPoint(hoveredPoint && hoveredPoint.idx === idx ? null : { idx, ...pt })}
+                  />
+                </g>
               ))}
 
               {/* X Axis Date Labels */}
