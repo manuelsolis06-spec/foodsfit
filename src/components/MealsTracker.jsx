@@ -96,12 +96,17 @@ export default function MealsTracker() {
 
   const handleCalculateGoal = () => {
     const w = parseFloat(calcWeight)
-    const h = parseFloat(calcHeight)
+    let h = parseFloat(calcHeight)
     const a = parseInt(calcAge)
 
     if (isNaN(w) || isNaN(h) || isNaN(a) || w <= 0 || h <= 0 || a <= 0) {
       alert('Por favor, ingresa valores válidos de peso, altura y edad.')
       return
+    }
+
+    // Auto-convert meters to centimeters (e.g. 1.75 to 175)
+    if (h < 3) {
+      h = h * 100
     }
 
     // Mifflin-St Jeor TMB
