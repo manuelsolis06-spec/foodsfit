@@ -111,6 +111,44 @@ export default function WeightTracker() {
     }
   }
 
+  const getSummaryStats = () => {
+    if (weightLogs.length === 0) return null
+
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+
+    const oneWeekAgo = new Date(now)
+    oneWeekAgo.setDate(now.getDate() - 7)
+
+    const oneMonthAgo = new Date(now)
+    oneMonthAgo.setMonth(now.getMonth() - 1)
+
+    const parsedLogs = weightLogs.map(log => ({
+      ...log,
+      parsedDate: new Date(log.date + 'T00:00:00')
+    }))
+
+    const latestLog = [...parsedLogs].sort((a, b) => b.parsedDate - a.parsedDate)[0]
+
+    const weeklyLogs = parsedLogs.filter(log => log.parsedDate >= oneWeekAgo)
+    const weeklyAvg = weeklyLogs.length > 0 
+      ? (weeklyLogs.reduce((sum, log) => sum + log.weight, 0) / weeklyLogs.length).toFixed(1)
+      : null
+
+    const monthlyLogs = parsedLogs.filter(log => log.parsedDate >= oneMonthAgo)
+    const monthlyAvg = monthlyLogs.length > 0 
+      ? (monthlyLogs.reduce((sum, log) => sum + log.weight, 0) / monthlyLogs.length).toFixed(1)
+      : null
+
+    return {
+      latest: latestLog ? latestLog.weight.toFixed(1) : null,
+      weeklyAvg,
+      monthlyAvg
+    }
+  }
+
+  const stats = getSummaryStats()
+
   // Calculate SVG Chart dimensions and paths
   const chartWidth = 650
   const chartHeight = 280
@@ -512,6 +550,61 @@ export default function WeightTracker() {
                 <span style={{ color: 'var(--secondary)' }}>⚖️ <strong>{hoveredPoint.log.weight} kg</strong></span>
               </div>
             )}
+          </div>
+        )}
+
+        {stats && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '0.5rem',
+            marginTop: '1.5rem',
+            marginBottom: '0.5rem'
+          }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.75rem 0.5rem',
+              textAlign: 'center'
+            }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.02em' }}>
+                Último Peso
+              </span>
+              <span style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--text-main)' }}>
+                {stats.latest ? `${stats.latest} kg` : '--'}
+              </span>
+            </div>
+
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.75rem 0.5rem',
+              textAlign: 'center'
+            }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.02em' }}>
+                Prom. Semanal
+              </span>
+              <span style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--secondary)' }}>
+                {stats.weeklyAvg ? `${stats.weeklyAvg} kg` : '--'}
+              </span>
+            </div>
+
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.75rem 0.5rem',
+              textAlign: 'center'
+            }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.02em' }}>
+                Prom. Mensual
+              </span>
+              <span style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--accent)' }}>
+                {stats.monthlyAvg ? `${stats.monthlyAvg} kg` : '--'}
+              </span>
+            </div>
           </div>
         )}
 
