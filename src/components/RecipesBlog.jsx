@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { 
   BookOpen, Plus, ChefHat, Heart, Sparkles, Clock, 
-  Trash2, X, Check, Search, Utensils, Flame, Edit3, ArrowRight
+  Trash2, X, Check, Search, Utensils, Flame, ChevronDown, CheckCircle2
 } from 'lucide-react'
 
 // 3 Recetas iniciales precargadas de alta calidad
@@ -88,16 +88,33 @@ export default function RecipesBlog() {
   const [newSteps, setNewSteps] = useState([''])
   const [formError, setFormError] = useState('')
 
-  // Modal Interactivo "COCINAR" (El núcleo de tu funcionalidad)
+  // Modal Interactivo "COCINAR"
   const [cookingRecipe, setCookingRecipe] = useState(null)
   const [activeIngredients, setActiveIngredients] = useState([])
   const [addingToDay, setAddingToDay] = useState(false)
   const [addedSuccess, setAddedSuccess] = useState(false)
 
+  // Estado para el buscador desplegable en cada ingrediente
+  const [openDropdownIndex, setOpenDropdownIndex] = useState(null)
+  const [dropdownSearch, setDropdownSearch] = useState('')
+  const dropdownRef = useRef(null)
+
   useEffect(() => {
     loadRecipes()
     loadCustomMeals()
     loadSavedIds()
+  }, [])
+
+  // Cerrar buscador si se pulsa fuera
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setOpenDropdownIndex(null)
+        setDropdownSearch('')
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const loadCustomMeals = async () => {
@@ -138,7 +155,6 @@ export default function RecipesBlog() {
     setLoading(true)
     try {
       const userCustomRecipes = JSON.parse(localStorage.getItem('foodsfit_community_recipes') || '[]')
-      // Mezclamos las recetas iniciales con las que el usuario haya creado
       setRecipes([...userCustomRecipes, ...INITIAL_COMMUNITY_RECIPES])
     } catch (err) {
       setRecipes(INITIAL_COMMUNITY_RECIPES)
@@ -147,7 +163,6 @@ export default function RecipesBlog() {
     }
   }
 
-  // Cálculos de Calorías de una receta
   const calculateIngredientKcal = (grams, kcalPer100g) => {
     const g = parseFloat(grams) || 0
     const k = parseFloat(kcalPer100g) || 0
@@ -160,20 +175,21 @@ export default function RecipesBlog() {
     }, 0)
   }
 
-  // --- Manejo del Modal de "COCINAR" ---
+  // --- Modo COCINAR ---
   const handleOpenCookModal = (recipe) => {
     setCookingRecipe(recipe)
-    // Clonamos los ingredientes para que el usuario pueda modificarlos libremente
     setActiveIngredients(
       recipe.ingredients.map(ing => ({
         ...ing,
         grams: ing.grams,
         kcal_per_100g: ing.kcal_per_100g,
         originalKcal: ing.kcal_per_100g,
-        isCustom: false
+        isCustom: false,
+        selectedMealName: null
       }))
     )
     setAddedSuccess(false)
+    setOpenDropdownIndex(null)
   }
 
   const handleUpdateCookIngredientGrams = (index, value) => {
@@ -182,21 +198,21 @@ export default function RecipesBlog() {
     setActiveIngredients(updated)
   }
 
-  const handleSwapIngredientEquivalence = (index, customMealId) => {
+  const handleSelectEquivalence = (index, meal) => {
     const updated = [...activeIngredients]
-    if (!customMealId) {
-      // Revertir a la equivalencia original de la receta
+    if (!meal) {
+      // Volver a la receta original
       updated[index].kcal_per_100g = updated[index].originalKcal
       updated[index].isCustom = false
+      updated[index].selectedMealName = null
     } else {
-      const selected = customMeals.find(m => m.id === customMealId)
-      if (selected) {
-        updated[index].kcal_per_100g = selected.kcal_per_100g
-        updated[index].isCustom = true
-        updated[index].customName = selected.name
-      }
+      updated[index].kcal_per_100g = meal.kcal_per_100g
+      updated[index].isCustom = true
+      updated[index].selectedMealName = meal.name
     }
     setActiveIngredients(updated)
+    setOpenDropdownIndex(null)
+    setDropdownSearch('')
   }
 
   const handleConfirmCookAndAddToDiary = async () => {
@@ -235,7 +251,7 @@ export default function RecipesBlog() {
     }
   }
 
-  // --- Manejo del Formulario de Crear Receta ---
+  // --- Formulario Crear Receta ---
   const handleAddIngredientRow = () => {
     setNewIngredients([...newIngredients, { name: '', grams: '', kcal_per_100g: '' }])
   }
@@ -309,7 +325,7 @@ export default function RecipesBlog() {
     setRecipes([createdRecipe, ...recipes])
     setShowCreateModal(false)
 
-    // Resetear formulario
+    // Reset
     setNewTitle('')
     setNewDescription('')
     setNewImageUrl('')
@@ -333,7 +349,7 @@ export default function RecipesBlog() {
         gap: '1rem',
         marginBottom: '2rem',
         padding: '1.5rem',
-        background: 'var(--card-bg)',
+        background: '#111827',
         border: '1px solid var(--border-color)',
         borderRadius: 'var(--radius-lg)'
       }}>
@@ -352,7 +368,7 @@ export default function RecipesBlog() {
             </h2>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
-            Descubre recetas, adáptalas a tus ingredientes exactos con el botón <strong>Cocinar</strong> y añádelas a tu diario.
+            Descubre recetas, adáptalas con tu propia comida con el botón <strong>Cocinar</strong> y añádelas a tu diario.
           </p>
         </div>
 
@@ -366,10 +382,7 @@ export default function RecipesBlog() {
       </div>
 
       {/* Barra de Búsqueda */}
-      <div style={{
-        position: 'relative',
-        marginBottom: '2rem'
-      }}>
+      <div style={{ position: 'relative', marginBottom: '2rem' }}>
         <Search 
           size={18} 
           style={{
@@ -386,11 +399,11 @@ export default function RecipesBlog() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="input-field"
-          style={{ paddingLeft: '2.8rem', width: '100%' }}
+          style={{ paddingLeft: '2.8rem', width: '100%', background: '#111827' }}
         />
       </div>
 
-      {/* Grid de Recetas (Estilo Feed Instagram / Pinterest) */}
+      {/* Grid de Recetas */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
@@ -404,44 +417,38 @@ export default function RecipesBlog() {
             <div
               key={recipe.id}
               style={{
-                background: 'var(--card-bg)',
+                background: '#111827',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-lg)',
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
                 transition: 'all 0.25s ease',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                boxShadow: '0 8px 24px rgba(0,0,0,0.45)'
               }}
             >
-              {/* Imagen con badge de kcal */}
+              {/* Imagen con badge */}
               <div style={{ position: 'relative', height: '200px', width: '100%', overflow: 'hidden' }}>
                 <img
                   src={recipe.image_url}
                   alt={recipe.title}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={(e) => {
                     e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80'
                   }}
                 />
                 
-                {/* Badge de Calorías */}
                 <div style={{
                   position: 'absolute',
                   top: '0.8rem',
                   right: '0.8rem',
-                  background: 'rgba(7, 10, 19, 0.85)',
-                  backdropFilter: 'blur(8px)',
+                  background: '#070a13',
                   padding: '0.4rem 0.8rem',
                   borderRadius: 'var(--radius-md)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.4rem',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.15)',
                   fontWeight: 700,
                   fontSize: '0.9rem',
                   color: 'var(--primary)'
@@ -449,13 +456,11 @@ export default function RecipesBlog() {
                   <Flame size={16} /> {totalKcal} kcal
                 </div>
 
-                {/* Badge de Tiempo */}
                 <div style={{
                   position: 'absolute',
                   bottom: '0.8rem',
                   left: '0.8rem',
-                  background: 'rgba(0,0,0,0.7)',
-                  backdropFilter: 'blur(6px)',
+                  background: 'rgba(0,0,0,0.85)',
                   padding: '0.3rem 0.6rem',
                   borderRadius: 'var(--radius-sm)',
                   display: 'flex',
@@ -467,14 +472,13 @@ export default function RecipesBlog() {
                   <Clock size={14} /> {recipe.prep_time}
                 </div>
 
-                {/* Botón Guardar / Like */}
                 <button
                   onClick={() => toggleSaveRecipe(recipe.id)}
                   style={{
                     position: 'absolute',
                     top: '0.8rem',
                     left: '0.8rem',
-                    background: isSaved ? '#ef4444' : 'rgba(0,0,0,0.6)',
+                    background: isSaved ? '#ef4444' : 'rgba(0,0,0,0.7)',
                     border: 'none',
                     borderRadius: '50%',
                     width: '36px',
@@ -483,16 +487,15 @@ export default function RecipesBlog() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    color: '#fff',
-                    transition: 'transform 0.2s ease'
+                    color: '#fff'
                   }}
-                  title={isSaved ? 'Guardada en tus favoritas' : 'Guardar receta'}
+                  title={isSaved ? 'Guardada' : 'Guardar'}
                 >
                   <Heart size={18} fill={isSaved ? '#fff' : 'none'} />
                 </button>
               </div>
 
-              {/* Contenido de la Tarjeta */}
+              {/* Contenido */}
               <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1, gap: '0.8rem' }}>
                 <div>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -507,12 +510,11 @@ export default function RecipesBlog() {
                   {recipe.description}
                 </p>
 
-                {/* Preview de Ingredientes */}
                 <div style={{
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'rgba(255,255,255,0.04)',
                   padding: '0.75rem',
                   borderRadius: 'var(--radius-md)',
-                  border: '1px solid rgba(255,255,255,0.05)'
+                  border: '1px solid rgba(255,255,255,0.06)'
                 }}>
                   <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: '0.4rem', fontWeight: 600 }}>
                     Ingredientes base ({recipe.ingredients.length}):
@@ -520,7 +522,7 @@ export default function RecipesBlog() {
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                     {recipe.ingredients.map((ing, i) => (
                       <span key={i} style={{
-                        background: 'rgba(255,255,255,0.07)',
+                        background: 'rgba(255,255,255,0.08)',
                         padding: '0.2rem 0.5rem',
                         borderRadius: 'var(--radius-sm)',
                         fontSize: '0.8rem',
@@ -532,7 +534,6 @@ export default function RecipesBlog() {
                   </div>
                 </div>
 
-                {/* Botón Principal: COCINAR */}
                 <button
                   onClick={() => handleOpenCookModal(recipe)}
                   className="btn-primary"
@@ -557,7 +558,7 @@ export default function RecipesBlog() {
       </div>
 
       {/* =========================================================================
-          MODAL INTERACTIVO: COCINAR Y AJUSTAR MEDIDAS / EQUIVALENCIAS
+          MODAL INTERACTIVO: COCINAR (FONDO OPACO 100% SÓLIDO Y BUSCADOR DE PLATOS)
           ========================================================================= */}
       {cookingRecipe && (
         <div style={{
@@ -566,110 +567,133 @@ export default function RecipesBlog() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(3, 7, 18, 0.92)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '1rem',
-          zIndex: 9999
+          zIndex: 99999
         }}>
           <div style={{
-            background: 'var(--card-bg)',
-            border: '1px solid var(--border-color)',
+            background: '#0d1322', // Color 100% SÓLIDO NO TRANSPARENTE
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             borderRadius: 'var(--radius-lg)',
             width: '100%',
-            maxWidth: '650px',
-            maxHeight: '90vh',
+            maxWidth: '680px',
+            maxHeight: '92vh',
             overflowY: 'auto',
-            padding: '1.75rem',
-            position: 'relative'
+            padding: '2rem',
+            position: 'relative',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
           }}>
-            {/* Cabecera del Modal */}
+            {/* Cabecera */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary)', marginBottom: '0.2rem' }}>
                   <ChefHat size={22} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     Modo Cocinar
                   </span>
                 </div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{cookingRecipe.title}</h2>
+                <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff' }}>{cookingRecipe.title}</h2>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-                  Ajusta los gramos o cambia el ingrediente por tu propia marca/equivalencia. El total se recalcula al instante.
+                  Ajusta los gramos o busca tu propio plato guardado para calcular las calorías reales.
                 </p>
               </div>
               <button
                 onClick={() => setCookingRecipe(null)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
               >
-                <X size={24} />
+                <X size={26} />
               </button>
             </div>
 
-            {/* Totalizador de Calorías Dinámico */}
+            {/* Totalizador de Calorías */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(249,115,22,0.15) 0%, rgba(239,68,68,0.15) 100%)',
-              border: '1px solid rgba(249,115,22,0.3)',
+              background: 'linear-gradient(135deg, rgba(249,115,22,0.2) 0%, rgba(239,68,68,0.2) 100%)',
+              border: '1px solid rgba(249,115,22,0.4)',
               borderRadius: 'var(--radius-md)',
-              padding: '1rem 1.25rem',
+              padding: '1.1rem 1.5rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              marginBottom: '1.5rem'
+              marginBottom: '1.5rem',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
             }}>
               <div>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>CALORÍAS CALCULADAS</span>
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
+                <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 700, letterSpacing: '0.5px' }}>CALORÍAS CALCULADAS</span>
+                <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
                   {calculateRecipeTotalKcal(activeIngredients)}
-                  <span style={{ fontSize: '1rem', color: 'var(--primary)', fontWeight: 700 }}>kcal</span>
+                  <span style={{ fontSize: '1.1rem', color: 'var(--primary)', fontWeight: 800 }}>kcal</span>
                 </div>
               </div>
 
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>PESO TOTAL</span>
-                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff' }}>
+                <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 700, letterSpacing: '0.5px' }}>PESO TOTAL</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>
                   {activeIngredients.reduce((sum, ing) => sum + (parseFloat(ing.grams) || 0), 0)} g
                 </div>
               </div>
             </div>
 
             {/* Lista Interactiva de Ingredientes */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Ingredientes y Equivalencias
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Ingredientes y Equivalencias de la Receta
               </div>
 
               {activeIngredients.map((ing, idx) => {
                 const ingKcal = calculateIngredientKcal(ing.grams, ing.kcal_per_100g)
+                const isDropdownOpen = openDropdownIndex === idx
+                
+                // Filtrar platos guardados por búsqueda del usuario
+                const filteredCustomMeals = customMeals.filter(m => 
+                  m.name.toLowerCase().includes(dropdownSearch.toLowerCase())
+                )
 
                 return (
                   <div
                     key={idx}
                     style={{
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.07)',
+                      background: '#161f36', // Bloque sólido
+                      border: ing.isCustom ? '1px solid var(--secondary)' : '1px solid rgba(255,255,255,0.1)',
                       borderRadius: 'var(--radius-md)',
-                      padding: '1rem',
+                      padding: '1.1rem',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '0.6rem'
+                      gap: '0.75rem',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, fontSize: '1rem' }}>{ing.name}</span>
-                      <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#fff' }}>{ing.name}</span>
+                        {ing.isCustom && (
+                          <span style={{
+                            background: 'rgba(139, 92, 246, 0.25)',
+                            color: '#c4b5fd',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(139, 92, 246, 0.4)'
+                          }}>
+                            {ing.selectedMealName}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.1rem' }}>
                         {ingKcal} kcal
                       </span>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '0.75rem', alignItems: 'center' }}>
-                      {/* Modificar Gramos */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: '0.85rem', alignItems: 'start' }}>
+                      {/* Gramos */}
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem', fontWeight: 600 }}>
                           Gramos que usarás:
                         </label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <div style={{ position: 'relative' }}>
                           <input
                             type="number"
                             min="0"
@@ -677,29 +701,144 @@ export default function RecipesBlog() {
                             value={ing.grams}
                             onChange={(e) => handleUpdateCookIngredientGrams(idx, e.target.value)}
                             className="input-field"
-                            style={{ padding: '0.5rem', width: '100%', fontWeight: 700 }}
+                            style={{ padding: '0.6rem', width: '100%', fontWeight: 800, fontSize: '1.05rem', background: '#0b101d' }}
                           />
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>g</span>
+                          <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                            g
+                          </span>
                         </div>
                       </div>
 
-                      {/* Cambiar por tu plato/equivalencia personalizada */}
-                      <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
+                      {/* Buscador de equivalencia interactivo con filtro de texto */}
+                      <div style={{ position: 'relative' }} ref={isDropdownOpen ? dropdownRef : null}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem', fontWeight: 600 }}>
                           Equivalencia ({ing.kcal_per_100g} kcal/100g):
                         </label>
-                        <select
-                          onChange={(e) => handleSwapIngredientEquivalence(idx, e.target.value)}
-                          className="input-field"
-                          style={{ padding: '0.5rem', width: '100%', fontSize: '0.82rem' }}
+
+                        {/* Botón selector que abre el buscador */}
+                        <div
+                          onClick={() => {
+                            setOpenDropdownIndex(isDropdownOpen ? null : idx)
+                            setDropdownSearch('')
+                          }}
+                          style={{
+                            background: '#0b101d',
+                            border: isDropdownOpen ? '1px solid var(--secondary)' : '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '0.65rem 0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            color: ing.isCustom ? '#c4b5fd' : '#fff'
+                          }}
                         >
-                          <option value="">Por defecto de receta ({ing.originalKcal} kcal/100g)</option>
-                          {customMeals.map((cm) => (
-                            <option key={cm.id} value={cm.id}>
-                              Mi {cm.name} ({cm.kcal_per_100g} kcal/100g)
-                            </option>
-                          ))}
-                        </select>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>
+                            {ing.isCustom ? `Mi ${ing.selectedMealName}` : `Por defecto (${ing.originalKcal} kcal/100g)`}
+                          </span>
+                          <ChevronDown size={16} color="var(--text-muted)" />
+                        </div>
+
+                        {/* Menú desplegable con INPUT DE BÚSQUEDA */}
+                        {isDropdownOpen && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            marginTop: '0.4rem',
+                            background: '#070b14', // Fondo 100% negro azulado sólido
+                            border: '1px solid rgba(139, 92, 246, 0.4)',
+                            borderRadius: 'var(--radius-md)',
+                            boxShadow: '0 12px 30px rgba(0,0,0,0.95)',
+                            zIndex: 100000,
+                            maxHeight: '260px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden'
+                          }}>
+                            {/* Input para ESCRIBIR tu plato */}
+                            <div style={{ padding: '0.6rem', borderBottom: '1px solid rgba(255,255,255,0.1)', background: '#0f172a' }}>
+                              <div style={{ position: 'relative' }}>
+                                <Search size={14} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  placeholder="Escribe tu plato (ej: Atún, Arroz...)..."
+                                  value={dropdownSearch}
+                                  onChange={(e) => setDropdownSearch(e.target.value)}
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.45rem 0.5rem 0.45rem 1.8rem',
+                                    fontSize: '0.85rem',
+                                    background: '#070b14',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    borderRadius: '4px',
+                                    color: '#fff'
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Opciones */}
+                            <div style={{ overflowY: 'auto', flex: 1 }}>
+                              {/* Opción reset a receta original */}
+                              <div
+                                onClick={() => handleSelectEquivalence(idx, null)}
+                                style={{
+                                  padding: '0.65rem 0.85rem',
+                                  fontSize: '0.83rem',
+                                  cursor: 'pointer',
+                                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                  background: !ing.isCustom ? 'rgba(255,255,255,0.08)' : 'transparent',
+                                  color: !ing.isCustom ? 'var(--primary)' : 'var(--text-muted)',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                <span>Por defecto de receta</span>
+                                <span style={{ fontWeight: 700 }}>{ing.originalKcal} kcal/100g</span>
+                              </div>
+
+                              {filteredCustomMeals.length > 0 ? (
+                                filteredCustomMeals.map((meal) => {
+                                  const isSelected = ing.selectedMealName === meal.name
+                                  return (
+                                    <div
+                                      key={meal.id}
+                                      onClick={() => handleSelectEquivalence(idx, meal)}
+                                      style={{
+                                        padding: '0.65rem 0.85rem',
+                                        fontSize: '0.85rem',
+                                        cursor: 'pointer',
+                                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                        background: isSelected ? 'rgba(139, 92, 246, 0.2)' : 'transparent',
+                                        color: isSelected ? '#fff' : 'var(--text-main)',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        transition: 'background 0.15s ease'
+                                      }}
+                                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(139, 92, 246, 0.25)'}
+                                      onMouseLeave={(e) => e.currentTarget.style.background = isSelected ? 'rgba(139, 92, 246, 0.2)' : 'transparent'}
+                                    >
+                                      <span style={{ fontWeight: isSelected ? 700 : 500 }}>Mi {meal.name}</span>
+                                      <span style={{ color: 'var(--secondary)', fontWeight: 800, fontSize: '0.82rem' }}>
+                                        {meal.kcal_per_100g} kcal/100g
+                                      </span>
+                                    </div>
+                                  )
+                                })
+                              ) : (
+                                <div style={{ padding: '0.8rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                  No hay platos que coincidan con "{dropdownSearch}"
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -707,25 +846,25 @@ export default function RecipesBlog() {
               })}
             </div>
 
-            {/* Pasos de preparación */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.6rem' }}>
+            {/* Pasos */}
+            <div style={{ marginBottom: '1.5rem', background: '#161f36', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.6rem' }}>
                 Instrucciones de Cocina
               </div>
-              <ol style={{ paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', color: 'var(--text-main)', fontSize: '0.9rem', lineHeight: '1.4' }}>
+              <ol style={{ paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', color: '#e2e8f0', fontSize: '0.92rem', lineHeight: '1.4' }}>
                 {cookingRecipe.steps.map((step, sIdx) => (
                   <li key={sIdx}>{step}</li>
                 ))}
               </ol>
             </div>
 
-            {/* Acciones del Modal */}
+            {/* Acciones */}
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
               <button
                 type="button"
                 onClick={() => setCookingRecipe(null)}
                 className="btn-outline"
-                style={{ flex: 1, padding: '0.75rem' }}
+                style={{ flex: 1, padding: '0.85rem' }}
               >
                 Cerrar
               </button>
@@ -737,17 +876,18 @@ export default function RecipesBlog() {
                 className="btn-primary"
                 style={{
                   flex: 2,
-                  padding: '0.75rem',
+                  padding: '0.85rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem',
-                  fontWeight: 700
+                  fontWeight: 800,
+                  fontSize: '1rem'
                 }}
               >
                 {addedSuccess ? (
                   <>
-                    <Check size={20} color="#22c55e" /> ¡Añadido a tu diario!
+                    <CheckCircle2 size={20} color="#22c55e" /> ¡Añadido a tu diario!
                   </>
                 ) : addingToDay ? (
                   'Guardando en tu diario...'
@@ -762,9 +902,7 @@ export default function RecipesBlog() {
         </div>
       )}
 
-      {/* =========================================================================
-          MODAL DE CREAR / PUBLICAR NUEVA RECETA
-          ========================================================================= */}
+      {/* MODAL PUBLICAR RECETA */}
       {showCreateModal && (
         <div style={{
           position: 'fixed',
@@ -772,31 +910,31 @@ export default function RecipesBlog() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(3, 7, 18, 0.92)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '1rem',
-          zIndex: 9999
+          zIndex: 99999
         }}>
           <div style={{
-            background: 'var(--card-bg)',
-            border: '1px solid var(--border-color)',
+            background: '#0d1322', // Sólido
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             borderRadius: 'var(--radius-lg)',
             width: '100%',
-            maxWidth: '600px',
-            maxHeight: '90vh',
+            maxWidth: '620px',
+            maxHeight: '92vh',
             overflowY: 'auto',
-            padding: '1.75rem'
+            padding: '2rem',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Publicar Receta en la Comunidad</h2>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Publicar Receta en la Comunidad</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
               >
-                <X size={22} />
+                <X size={24} />
               </button>
             </div>
 
@@ -823,6 +961,7 @@ export default function RecipesBlog() {
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="input-field"
+                  style={{ background: '#161f36' }}
                   required
                 />
               </div>
@@ -836,6 +975,7 @@ export default function RecipesBlog() {
                     value={newPrepTime}
                     onChange={(e) => setNewPrepTime(e.target.value)}
                     className="input-field"
+                    style={{ background: '#161f36' }}
                   />
                 </div>
                 <div>
@@ -846,6 +986,7 @@ export default function RecipesBlog() {
                     value={newImageUrl}
                     onChange={(e) => setNewImageUrl(e.target.value)}
                     className="input-field"
+                    style={{ background: '#161f36' }}
                   />
                 </div>
               </div>
@@ -858,11 +999,11 @@ export default function RecipesBlog() {
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                   className="input-field"
-                  style={{ width: '100%', resize: 'vertical' }}
+                  style={{ width: '100%', resize: 'vertical', background: '#161f36' }}
                 />
               </div>
 
-              {/* Sección Ingredientes */}
+              {/* Ingredientes */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <label className="label" style={{ margin: 0 }}>Ingredientes y Kcal *</label>
@@ -894,6 +1035,7 @@ export default function RecipesBlog() {
                         value={ing.name}
                         onChange={(e) => handleIngredientChange(i, 'name', e.target.value)}
                         className="input-field"
+                        style={{ background: '#161f36' }}
                       />
                       <input
                         type="number"
@@ -902,6 +1044,7 @@ export default function RecipesBlog() {
                         value={ing.grams}
                         onChange={(e) => handleIngredientChange(i, 'grams', e.target.value)}
                         className="input-field"
+                        style={{ background: '#161f36' }}
                       />
                       <input
                         type="number"
@@ -910,6 +1053,7 @@ export default function RecipesBlog() {
                         value={ing.kcal_per_100g}
                         onChange={(e) => handleIngredientChange(i, 'kcal_per_100g', e.target.value)}
                         className="input-field"
+                        style={{ background: '#161f36' }}
                       />
                       <button
                         type="button"
@@ -923,7 +1067,7 @@ export default function RecipesBlog() {
                 </div>
               </div>
 
-              {/* Sección Pasos */}
+              {/* Pasos */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                   <label className="label" style={{ margin: 0 }}>Pasos de Preparación *</label>
@@ -958,7 +1102,7 @@ export default function RecipesBlog() {
                         value={step}
                         onChange={(e) => handleStepChange(sIdx, e.target.value)}
                         className="input-field"
-                        style={{ flex: 1 }}
+                        style={{ flex: 1, background: '#161f36' }}
                       />
                       <button
                         type="button"
@@ -972,7 +1116,6 @@ export default function RecipesBlog() {
                 </div>
               </div>
 
-              {/* Botón de envío */}
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                 <button
                   type="button"
