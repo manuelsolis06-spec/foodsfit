@@ -4,7 +4,8 @@ import Auth from './components/Auth'
 import MealsTracker from './components/MealsTracker'
 import WeightTracker from './components/WeightTracker'
 import CustomMeals from './components/CustomMeals'
-import { LogOut, Flame, TrendingUp, Utensils, Loader } from 'lucide-react'
+import RecipesBlog from './components/RecipesBlog'
+import { LogOut, Flame, TrendingUp, Utensils, BookOpen, Loader } from 'lucide-react'
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -107,6 +108,13 @@ export default function App() {
           <Utensils size={18} style={{ color: activeTab === 'custom' ? 'var(--accent)' : 'inherit' }} />
           Mis Platos Guardados
         </button>
+        <button
+          onClick={() => setActiveTab('recipes')}
+          className={`tab-btn ${activeTab === 'recipes' ? 'active' : ''}`}
+        >
+          <BookOpen size={18} style={{ color: activeTab === 'recipes' ? '#f59e0b' : 'inherit' }} />
+          Recetas de la Comunidad
+        </button>
       </nav>
 
       {/* Main Tab Content */}
@@ -114,6 +122,7 @@ export default function App() {
         {activeTab === 'meals' && <MealsTracker />}
         {activeTab === 'weight' && <WeightTracker />}
         {activeTab === 'custom' && <CustomMeals />}
+        {activeTab === 'recipes' && <RecipesBlog />}
       </main>
     </div>
   )

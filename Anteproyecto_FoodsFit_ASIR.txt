@@ -1,0 +1,208 @@
+ANTEPROYECTO DEL PROYECTO INTERMODULAR (ASIR)
+
+FOODSFIT: INFRAESTRUCTURA DE SERVICIOS Y PLATAFORMA PÚBLICA PARA EL SEGUIMIENTO NUTRICIONAL Y GESTIÓN COLABORATIVA DE RECETAS
+
+Ciclo Formativo: Administración de Sistemas Informáticos en Red (ASIR - 2º Curso)
+Proyecto: Proyecto Intermodular (Fin de Grado)
+Centro Educativo: [Nombre de tu Centro Educativo]
+Curso Académico: 2026/2027
+Grupo e Integrantes: [Nombre del Grupo y Alumnos]
+Fecha de Presentación: Noviembre 2026
+
+================================================================================
+ÍNDICE
+================================================================================
+
+1. Descripción general y objetivos del proyecto
+   1.1. Necesidad detectada y usuarios destinatarios
+   1.2. Solución tecnológica propuesta: plataforma pública de libre acceso
+   1.3. Impacto y valor social y técnico
+2. Integración de los módulos profesionales del ciclo
+3. Diseño preliminar de la infraestructura tecnológica
+   3.1. Arquitectura hardware, sistemas operativos y virtualización
+   3.2. Topología de red, proxy inverso y servicios esenciales
+   3.3. Control de acceso, perfiles y roles de usuario
+   3.4. Seguridad perimetral, copias de seguridad y contingencia
+4. Innovación, creatividad y valor diferencial
+5. Plan de trabajo, reparto de tareas y cronograma de hitos
+6. Estimación económica de costes y viabilidad financiera
+7. Conclusión y expectativas de desarrollo
+
+================================================================================
+1. DESCRIPCIÓN GENERAL Y OBJETIVOS DEL PROYECTO
+================================================================================
+
+1.1. Necesidad detectada y usuarios destinatarios
+El seguimiento de la alimentación y del peso corporal es un hábito clave para la salud de muchas personas. Sin embargo, los usuarios que intentan mantener este control se encuentran con dos barreras principales en el software actual:
+- Monetización agresiva y barreras de pago: La gran mayoría de aplicaciones comerciales exigen suscripciones periódicas caras para funciones elementales y monetizan los datos de los usuarios vendiéndolos o compartiéndolos con terceros.
+- Fricción y tedio en el registro: Registrar alimentos de forma individual plato por plato desmotiva al usuario. Además, las plataformas convencionales no facilitan una biblioteca comunitaria donde se puedan tomar recetas de otros y adaptarlas en porciones personales antes de guardarlas.
+
+1.2. Solución tecnológica propuesta: plataforma pública de libre acceso
+A partir de la base y el prototipo funcional de FoodsFit, el proyecto plantea evolucionar la aplicación y diseñar e implementar una infraestructura completa de servicios en red, abierta, segura y de uso libre para la comunidad:
+- Servicio público y accesible: Una plataforma web progresiva (PWA) donde cualquier persona puede crearse una cuenta de forma gratuita para llevar su diario de comidas y la gráfica de evolución de su peso.
+- Biblioteca colaborativa con edición en borrador: Los usuarios pueden publicar recetas en un catálogo público. Cualquier otro usuario puede importarlas a su biblioteca privada en modo "borrador", ajustar las cantidades y raciones a su meta calórica y añadirlas a su diario con un solo clic.
+- Infraestructura soberana y auto-administrada: Demostrar que un servicio web público puede mantenerse de forma eficiente y segura bajo administración propia (servidores Linux, contenedores Docker, proxy Nginx, base de datos relacional y servicios en la nube con AWS), garantizando la privacidad de los usuarios según el RGPD.
+
+1.3. Impacto y valor social y técnico
+- Impacto social: Poner a disposición de la comunidad una herramienta gratuita, sin publicidad abusiva y respetuosa con los datos personales de salud.
+- Impacto formativo (ASIR): Servir como proyecto de fin de grado integral, demostrando la capacidad de diseñar, poner en producción, monitorizar y securizar una infraestructura web real de acceso público.
+
+================================================================================
+2. INTEGRACIÓN DE LOS MÓDULOS PROFESIONALES DEL CICLO
+================================================================================
+
+El anteproyecto abarca todos los módulos del curso formativo:
+
+- ASO (Administración de Sistemas Operativos):
+  * Instalación, configuración y securización (hardening) del servidor base Linux (Debian / Ubuntu Server LTS).
+  * Gestión de usuarios del sistema, grupos y permisos POSIX; configuración de cuotas de disco.
+  * Automatización de tareas de mantenimiento, rotación de trazas (logrotate) y ejecución de scripts mediante cron y temporizadores de systemd.
+
+- SRI (Servicios de Red e Internet):
+  * Servidor Web y Proxy Inverso Nginx configurado con compresión Gzip/Brotli, redirección forzada de HTTP a HTTPS y cabeceras de seguridad web (HSTS, CSP, X-Frame-Options).
+  * Configuración de resolución de nombres DNS y despliegue de certificados digitales SSL/TLS con renovación desatendida vía Let's Encrypt / Certbot.
+  * Configuración de un servidor SSH seguro (autenticación obligatoria por par de claves criptográficas, cambio de puerto y desactivación de acceso directo al usuario root).
+
+- IAW (Implantación de Aplicaciones Web):
+  * Despliegue de la interfaz web React/Vite sobre Nginx.
+  * Aprovisionamiento del entorno mediante contenedores Docker y orquestación con Docker Compose para aislar servicios y asegurar reproducibilidad.
+  * Gestión de variables de entorno seguras (.env) y preparación de un flujo automatizado de actualización mediante repositorios Git.
+
+- ABD (Administración de Bases de Datos):
+  * Implementación y administración del motor de base de datos relacional PostgreSQL alojado en la infraestructura propia.
+  * Modelado del esquema relacional, definición de roles, índices de rendimiento para registros temporales y control de acceso.
+  * Automatización del plan de copias de seguridad lógicas mediante scripts con pg_dump y verificación de integridad de los datos.
+
+- SAD (Seguridad y Alta Disponibilidad):
+  * Cortafuegos perimetral del sistema (UFW o nftables) con política de denegación por defecto, exponiendo únicamente los puertos indispensables (HTTPS y SSH securizado).
+  * Implementación de Fail2ban para monitorizar y bloquear automáticamente intentos de ataque por fuerza bruta.
+  * Plan de copias de seguridad bajo el estándar 3-2-1 con cifrado asimétrico (GPG) de los volcados y transferencia segura hacia almacenamiento externo.
+  * Protocolo documentado de pruebas de recuperación y restauración ante desastres (Disaster Recovery).
+
+- Optativa (Cloud Computing con AWS):
+  * Integración de servicios en la nube de Amazon Web Services (AWS) para potenciar la infraestructura:
+    * Uso de AWS S3 para el almacenamiento externo, cifrado y desacoplado de las copias de seguridad y recursos estáticos.
+    * Valoración del despliegue en instancias AWS EC2 y gestión de grupos de seguridad perimetrales (Security Groups).
+    * Gestión de identidades y permisos con AWS IAM siguiendo el principio de mínimo privilegio.
+
+- IngFP (Inglés Profesional):
+  * Consulta, análisis y aplicación directa de documentación técnica oficial en inglés (AWS Documentation, Docker Docs, PostgreSQL Reference Manual, Nginx Docs).
+  * Redacción en inglés del resumen técnico del proyecto (Abstract), glosario de términos y preparación de la defensa técnica / slides del proyecto.
+
+- IPE (Itinerario para la Empleabilidad) / Proyecto Intermodular:
+  * Planificación temporal mediante metodología ágil y cronograma de hitos.
+  * Estimación económica y viabilidad del servicio público (análisis de costes de infraestructura y amortización).
+  * Marco normativo y ético: adecuación al RGPD y LOPD-GDD en el tratamiento y almacenamiento de información de hábitos y peso.
+
+================================================================================
+3. DISEÑO PRELIMINAR DE LA INFRAESTRUCTURA TÉCNICA
+================================================================================
+
+3.1. Arquitectura hardware, sistemas operativos y virtualización
+- Entorno de laboratorio y producción preliminar: Máquina virtual en hipervisor local (VirtualBox / Proxmox) para fase de pruebas, escalable a un VPS o instancia cloud (AWS EC2).
+- Especificaciones del sistema base:
+  * Sistema Operativo: Ubuntu Server 24.04 LTS o Debian 12 (minimal, sin entorno gráfico).
+  * Recursos asignados: 2 vCPU, 4 GB de memoria RAM, 40-50 GB de almacenamiento SSD virtualizado.
+
+3.2. Topología de red, proxy inverso y servicios esenciales
+- Tráfico web exclusivamente mediante HTTPS (puerto 443/TCP).
+- Nginx actúa como puerta de entrada: sirve los ficheros estáticos de la aplicación FoodsFit y redirige internamente las peticiones hacia la API y la base de datos PostgreSQL, la cual permanece oculta a la red pública en una subred interna privada de Docker.
+
+Esquema de flujo de red:
+[ Usuarios en Internet ]
+           │ (HTTPS / 443)
+           ▼
+   [ Firewall UFW + Fail2ban ]
+           │
+   [ Nginx (Proxy Inverso + SSL) ]
+     ├──> [ Contenedor Web Frontend (React) ]
+     └──> [ Contenedor API / Backend ]
+                │ (Red interna Docker privada)
+                ▼
+          [ PostgreSQL DB (Volumen persistente) ]
+                │
+                └─> [ Copias de seguridad cifradas (GPG) ──> AWS S3 ]
+
+3.3. Control de acceso y roles de usuario
+1. Usuario registrado (Público): Gestiona su perfil, añade sus propios platos privados, registra consumos y puede consultar y clonar recetas del catálogo público.
+2. Usuario colaborador / Editor: Capacidad para publicar recetas revisadas en el catálogo público común.
+3. Administrador de Sistemas (SysAdmin): Responsable técnico del sistema operativo, contenedores, certificados y copias; sin acceso innecesario a datos privados de los usuarios.
+
+3.4. Seguridad prevista y alta disponibilidad
+- Cifrado extremo a extremo: Datos en tránsito cifrados mediante TLS 1.3 y contraseñas de usuarios almacenadas con algoritmos de hashing seguro (bcrypt/argon2).
+- Copias de seguridad automatizadas: Tarea programada en cron que genera copias diarias de PostgreSQL, las cifra localmente con GPG y las transfiere al bucket seguro de AWS S3.
+- Supervisión de accesos: Registro unificado de logs en /var/log para auditoría y monitorización de posibles accesos indebidos.
+
+================================================================================
+4. INNOVACIÓN, CREATIVIDAD Y VALOR DIFERENCIAL
+================================================================================
+
+- Arquitectura de microservicios con Docker: Desacoplamiento total entre frontend, backend y base de datos, lo que permite reiniciar o actualizar componentes sin caídas del servicio completo.
+- Modelo híbrido On-Premise + AWS: Combinación de administración de sistemas locales con servicios cloud emergentes (AWS S3/EC2), aportando valor añadido y alineación con la formación optativa.
+- Filosofía colaborativa con edición en borrador: Resuelve la rigidez de las apps convencionales permitiendo adaptar porciones de recetas compartidas de forma instantánea antes de registrarlas.
+- Compromiso Open Data y Privacidad: Servicio abierto, sin rastreo comercial y con pleno control de los datos personales.
+
+================================================================================
+5. PLAN DE TRABAJO, REPARTO DE TAREAS Y CRONOGRAMA
+================================================================================
+
+El desarrollo se organiza en hitos a lo largo del curso lectivo hacia la defensa del Proyecto Fin de Grado:
+
+- Hito 1 (Semanas 1 - 2): Análisis y Requisitos
+  * Definición funcional, marco RGPD y diseño del esquema relacional.
+  * Entregable: Documento de requisitos y modelo E/R.
+
+- Hito 2 (Semanas 3 - 5): Infraestructura Base
+  * Aprovisionamiento de Linux, configuración de usuarios, SSH y DNS.
+  * Entregable: Servidor Linux bastionado y operativo.
+
+- Hito 3 (Semanas 6 - 9): Servicios Web y DB
+  * Dockerización de FoodsFit, despliegue de PostgreSQL y Nginx con SSL.
+  * Entregable: Plataforma accesible por HTTPS.
+
+- Hito 4 (Semanas 10 - 12): Seguridad y Cloud
+  * Configuración de cortafuegos, Fail2ban e integración de backups en AWS S3.
+  * Entregable: Scripts de backup y bucket AWS activo.
+
+- Hito 5 (Semanas 13 - 15): Pruebas y Validación
+  * Pruebas de usabilidad con usuarios reales, test de carga y de restauración.
+  * Entregable: Informe de pruebas y actas de restauración.
+
+- Hito 6 (Semanas 16 - 18): Cierre y Memoria
+  * Redacción de la memoria técnica final, abstract en inglés y presentación.
+  * Entregable: Memoria oficial y diapositivas de defensa.
+
+Reparto funcional de responsabilidades (adaptable al tamaño del grupo):
+- Área de Sistemas, Redes y Cloud (ASO, SRI, Optativa AWS): Configuración del servidor Linux, proxy Nginx, certificados, SSH y servicios en AWS.
+- Área de Base de Datos y Seguridad (ABD, SAD): Despliegue de PostgreSQL, políticas de acceso, cortafuegos, Fail2ban y scripts de copias de seguridad.
+- Área de Aplicación Web y Documentación (IAW, IngFP, IPE): Dockerización de la web, pruebas de integración, redacción en inglés, análisis de costes y coordinación.
+
+================================================================================
+6. ESTIMACIÓN ECONÓMICA DE COSTES Y VIABILIDAD FINANCIERA
+================================================================================
+
+Para cumplir con el criterio de evaluación de viabilidad económica realista para un despliegue profesional:
+
+A. Inversión Inicial (Hardware y Equipamiento amortizable)
+- Servidor / MiniPC dedicado para despliegue (Intel Core i5, 16 GB RAM, 512 GB SSD NVMe): 550,00 € (amortizable a 4 años: 137,50 €/año).
+- Sistema de Alimentación Ininterrumpida (SAI 650VA): 75,00 € (amortizable a 3 años: 25,00 €/año).
+
+B. Costes Operativos Anuales (OPEX)
+- Registro de Dominio público (.es / .org / .com): 15,00 €/año.
+- Certificados de seguridad SSL/TLS (Let's Encrypt): 0,00 € (Open Source).
+- Servicios Cloud AWS (Bucket S3 para copias de seguridad cifradas y tráfico asociado): 24,00 €/año (aprox. 2 €/mes).
+- Consumo eléctrico estimado del servidor (media de 40W en funcionamiento continuo a 0,16 €/kWh): 56,06 €/año.
+
+C. Coste de Mano de Obra Técnica (Implantación del Proyecto)
+- 110 horas de dedicación técnica (administración de sistemas, despliegue, securización y pruebas) valoradas a 22,00 €/hora: 2.420,00 €.
+
+Conclusión económica:
+El coste de puesta en marcha del proyecto a nivel de equipamiento y servicios del primer año es de 720,06 €, con un coste de mantenimiento anual posterior inferior a 100 €/año. Esto demuestra que una plataforma comunitaria y pública de este tipo es extraordinariamente viable y sostenible económicamente.
+
+================================================================================
+7. CONCLUSIÓN
+================================================================================
+
+El anteproyecto de FoodsFit reúne los requisitos indispensables de un Proyecto de Fin de Grado en ASIR: parte de una aplicación con un fin social y comunitario útil, y la rodea de una arquitectura de sistemas completa y profesional.
+
+Permite demostrar competencias avanzadas en administración de sistemas operativos Linux, orquestación con contenedores Docker, gestión de bases de datos relacionales PostgreSQL, securización perimetral, integración con servicios en la nube de AWS y comunicación técnica en inglés. El planteamiento es realista, viable en plazos y costes, y sienta una base sólida para su desarrollo durante el curso.
